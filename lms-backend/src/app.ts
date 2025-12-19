@@ -14,7 +14,10 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:5173', process.env.FRONTEND_URL || '*'], 
+  origin: [
+    'http://localhost:5173',                  // Localhost
+    'tdd-kata-three.vercel.app'       // <--- Your Exact Vercel URL
+  ], 
   credentials: true
 }));
 app.use(helmet());
