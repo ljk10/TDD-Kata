@@ -12,7 +12,7 @@ import adminRoutes from './routes/admin.routes';
 const app = express();
 
 // Middleware
-app.use(express.json());
+
 app.use(cors({
   origin: [
     'http://localhost:5173',                  // Localhost
@@ -20,6 +20,7 @@ app.use(cors({
   ], 
   credentials: true
 }));
+app.use(express.json());
 app.use(helmet());
 app.use(morgan('dev'));
 app.use('/api/auth', authRoutes);
