@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,            /* Keeps type safety high */
+    "esModuleInterop": true,   /* Allows "import express from 'express'" */
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": false /* <--- DISABLING THIS FIXES YOUR ERROR */
+  },
+  "include": ["src/**/*", "jest.config.js"],
+  "exclude": ["node_modules", "**/*.test.ts"]
+}
