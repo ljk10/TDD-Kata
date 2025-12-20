@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
 // 5. API Routes (Make sure /api is here!)
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
-app.use('/api/progress', progressRoutes); // or whatever your route is
+app.use('/api/progress', progressRoutes); 
 app.use('/api/admin', adminRoutes);
 
 // 6. 404 Handler (Log when a route is missed)
