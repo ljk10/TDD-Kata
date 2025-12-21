@@ -68,6 +68,8 @@ To verify the RBAC features, use these pre-configured accounts:
 2. **Mock Data:** Generated the `seed.ts` script logic to quickly populate the database with dummy courses and chapters for testing.
 3. **Refactoring & UI Components:** Assisted in building the Admin Dashboard UI components (Tables, Modals) and debugging the backend logic for joining user data with course enrollments.
 4. **Deployment Debugging:** Assisted in resolving CORS issues between Vercel and Render.
+5. **Logical Help for functions** Assisted in providing the logical workflow of different fucntions and helped in their debugging.
+6. **Setting up Readme.**Assisted in structuring the Readme file.
 
 ### What Was NOT AI-Generated
 - **Core TDD Process:** The test suites (`auth.test.ts`, `progress.test.ts`) were written manually *before* the implementation code to ensure strict adherence to the TDD Kata.
