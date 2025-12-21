@@ -6,11 +6,11 @@
     "baseUrl": ".",
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,            /* Keeps type safety high */
-    "esModuleInterop": true,   /* Allows "import express from 'express'" */
+    "strict": true,            
+    "esModuleInterop": true,   
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "verbatimModuleSyntax": false /* <--- DISABLING THIS FIXES YOUR ERROR */
+    "verbatimModuleSyntax": false 
   },
   "include": ["src/**/*", "jest.config.js"],
   "exclude": ["node_modules", "**/*.test.ts"]

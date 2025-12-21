@@ -2,14 +2,14 @@ import request from 'supertest';
 import app from '../app';
 import { supabase } from '../config/supabase';
 
-// Cleanup after tests to keep DB clean
+
 afterAll(async () => {
   await supabase.from('users').delete().eq('email', 'teststudent@example.com');
 });
 
 describe('Auth Endpoints', () => {
  describe('POST /api/auth/login', () => {
-    // create a user to test login against
+    
     beforeAll(async () => {
        await request(app).post('/api/auth/register').send({
          email: 'loginuser@example.com',
@@ -29,7 +29,7 @@ describe('Auth Endpoints', () => {
       });
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body).toHaveProperty('token'); // The JWT
+      expect(res.body).toHaveProperty('token'); 
       expect(res.body.user).toHaveProperty('email', 'loginuser@example.com');
     });
 

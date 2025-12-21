@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Use Environment Variable, fallback to localhost for development
+
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
@@ -10,7 +10,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor: Add Token to every request
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {

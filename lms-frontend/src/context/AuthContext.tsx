@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Check for token on startup
+  
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {

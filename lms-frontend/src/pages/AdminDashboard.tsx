@@ -14,7 +14,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]); 
   const [loading, setLoading] = useState(true);
   
-  // State for Add Mentor Modal
+  
   const [showModal, setShowModal] = useState(false);
   const [newMentorEmail, setNewMentorEmail] = useState('');
   const [newMentorPassword, setNewMentorPassword] = useState('');
@@ -60,7 +60,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 👇 Handle Adding Mentor
+  
   const handleAddMentor = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -74,7 +74,7 @@ const AdminDashboard = () => {
       setShowModal(false);
       setNewMentorEmail('');
       setNewMentorPassword('');
-      fetchUsers(); // Refresh list to show new mentor
+      fetchUsers(); 
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to create mentor");
     }
@@ -87,7 +87,7 @@ const AdminDashboard = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
         
-        {/* 👇 ADD MENTOR BUTTON */}
+        {}
         <button 
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold shadow-md transition"
@@ -96,7 +96,7 @@ const AdminDashboard = () => {
         </button>
       </div>
       
-      {/* Users Table */}
+      
       <div className="bg-white shadow-xl rounded-lg overflow-hidden border border-gray-200">
         <table className="min-w-full leading-normal">
           <thead>
@@ -135,7 +135,7 @@ const AdminDashboard = () => {
         </table>
       </div>
 
-      {/* 👇 ADD MENTOR MODAL */}
+     
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl p-6 w-96 relative animate-fade-in">

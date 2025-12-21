@@ -17,13 +17,13 @@ const CreateCourse = () => {
 
     try {
       const token = localStorage.getItem('token');
-      // POST request to backend
+     
       await axios.post('http://localhost:5000/api/courses', 
         { title, description },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Redirect back to dashboard on success
+      
       navigate('/dashboard');
     } catch (err: any) {
       console.error(err);

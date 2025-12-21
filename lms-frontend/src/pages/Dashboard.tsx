@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch User Role & Courses
+  
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -25,13 +25,11 @@ const Dashboard = () => {
         return;
       }
 
-      // Decode token roughly to get role (or fetch from an endpoint if you prefer)
-      // This assumes your backend sends the role in the user object or you stored it on login
-      // For safety, let's fetch the user profile or assume role is stored in localStorage
+      
       const storedRole = localStorage.getItem('role') || 'student'; 
       setRole(storedRole);
 
-      // Fetch Courses (Backend automatically filters based on role)
+      
       const res = await axios.get('http://localhost:5000/api/courses', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -48,18 +46,18 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // 2. Handle Delete (Mentors Only)
+  
   const handleDeleteCourse = async (courseId: string) => {
     if (!window.confirm("Are you sure you want to delete this course? This cannot be undone.")) return;
 
     try {
       const token = localStorage.getItem('token');
-      // 👇 Calls the DELETE endpoint you just created
+      
       await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Remove from UI
+      
       setCourses(prev => prev.filter(c => c.id !== courseId));
       alert("Course deleted successfully!");
     } catch (err) {
@@ -71,7 +69,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      {/* Header */}
+      
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
@@ -80,7 +78,7 @@ const Dashboard = () => {
           <p className="text-gray-500">Welcome back!</p>
         </div>
 
-        {/* Create Button (Mentors Only) */}
+        
         {role === 'mentor' && (
           <button 
             onClick={() => navigate('/create-course')}
@@ -91,7 +89,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Course Grid */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map(course => (
           <div key={course.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition">
@@ -103,7 +101,7 @@ const Dashboard = () => {
               
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
                 
-                {/* ACTIONS FOR STUDENTS */}
+                
                 {role === 'student' && (
                   <button 
                     onClick={() => navigate(`/course/${course.id}`)}
@@ -113,7 +111,7 @@ const Dashboard = () => {
                   </button>
                 )}
 
-                {/* ACTIONS FOR MENTORS */}
+                
                 {role === 'mentor' && (
                   <div className="flex gap-3 w-full">
                     <button 
@@ -123,7 +121,7 @@ const Dashboard = () => {
                       <Edit size={16} /> Manage
                     </button>
                     
-                    {/* 👇 DELETE BUTTON */}
+                    
                     <button 
                       onClick={() => handleDeleteCourse(course.id)}
                       className="flex items-center justify-center px-3 bg-red-50 text-red-600 rounded hover:bg-red-100"

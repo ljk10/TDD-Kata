@@ -18,27 +18,25 @@ const Login = () => {
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       
-      // 👇 DEBUGGING: Log exactly what the server sent
+      
       console.log("Server Response:", res.data);
 
-      // 1. Extract Token and User Data
+      
       const { token, user } = res.data;
 
-      // 2. CRITICAL: Save Role to LocalStorage
-      // The backend sends it inside 'user', so we access user.role
+      
       localStorage.setItem('token', token);
       localStorage.setItem('role', user.role); 
       localStorage.setItem('userId', user.id);
 
-      // 3. Force role to be lowercase to match Dashboard checks
+      
       const role = user.role.toLowerCase();
 
-      // 4. Redirect based on role
+      
       if (role === 'admin') {
         navigate('/admin-dashboard');
       } else {
-        // Both mentors and students go to the main dashboard
-        // The dashboard will read the 'role' we just saved and adjust itself
+        
         navigate('/dashboard');
       }
 

@@ -11,7 +11,7 @@ export const completeChapter = async (req: AuthRequest, res: Response) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // 1. Get the Current Chapter's details
+    
     const { data: currentChapter, error: chapterError } = await supabase
       .from('chapters')
       .select('*')
@@ -22,9 +22,9 @@ export const completeChapter = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Chapter not found' });
     }
 
-    // 2. SEQUENTIAL LOCK CHECK
+    
     if (currentChapter.sequence_order > 1) {
-      // A. Find the previous chapter ID
+      
       const { data: prevChapter } = await supabase
         .from('chapters')
         .select('id')
@@ -33,7 +33,7 @@ export const completeChapter = async (req: AuthRequest, res: Response) => {
         .single();
 
       if (prevChapter) {
-        // B. Check if the user has completed that previous chapter
+        
         const { data: progress } = await supabase
           .from('progress')
           .select('id')
@@ -42,9 +42,9 @@ export const completeChapter = async (req: AuthRequest, res: Response) => {
           .eq('is_completed', true)
           .single();
 
-        // C. If no progress found, BLOCK access
+        
         if (!progress) {
-          // 👇 FIX: Changed from 403 to 400 to match the test expectation
+          
           return res.status(400).json({ 
             message: "Cannot complete this chapter. Previous chapter must be completed first." 
           });
@@ -52,7 +52,7 @@ export const completeChapter = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // 3. Mark as Complete
+    
     const { data, error } = await supabase
       .from('progress')
       .upsert([

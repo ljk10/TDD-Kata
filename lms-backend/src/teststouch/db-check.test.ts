@@ -5,7 +5,7 @@ describe('Database Connection', () => {
     const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
     
     expect(error).toBeNull();
-    // Since table might be empty, we just check if the query executed without error
+    
     expect(typeof data === 'number' || data === null).toBeTruthy(); 
   });
 });

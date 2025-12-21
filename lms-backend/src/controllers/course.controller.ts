@@ -20,11 +20,11 @@ export const createCourse = async (req: AuthRequest, res: Response) => {
 };
 export const deleteCourse = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params; // Course ID
+    const { id } = req.params; 
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    // 1. Get Course to check owner
+    
     const { data: course, error: fetchError } = await supabase
       .from('courses')
       .select('mentor_id')
@@ -35,8 +35,7 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    // 2. Check Permissions
-    // Allow if Admin OR if User is the Course Owner
+    
     const isOwner = course.mentor_id === userId;
     const isAdmin = userRole === 'admin';
 
@@ -44,7 +43,7 @@ export const deleteCourse = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "Forbidden: You do not own this course" });
     }
 
-    // 3. Delete
+    
     const { error } = await supabase
       .from('courses')
       .delete()
@@ -88,7 +87,7 @@ export const enrollStudent = async (req: Request, res: Response): Promise<void> 
   const { email } = req.body;
 
   try {
-    // 1. Get Student ID (Ensure table is 'users' or 'students')
+    
     const { data: student } = await supabase
       .from('users') 
       .select('id').eq('email', email).maybeSingle();
@@ -98,7 +97,7 @@ export const enrollStudent = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // 2. Check Enrollment
+    
     const { data: exists } = await supabase
       .from('enrollments')
       .select('*')
@@ -109,7 +108,7 @@ export const enrollStudent = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // 3. Enroll
+    
     const { error } = await supabase
       .from('enrollments').insert([{ student_id: student.id, course_id: courseId }]);
 

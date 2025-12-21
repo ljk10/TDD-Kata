@@ -14,11 +14,10 @@ interface Chapter {
 }
 
 export default function CoursePlayer() {
-  // 👇 FIX 1: Use 'id' (or whatever matches your Route path in App.tsx)
-  // If your route is path="/course/:id", this MUST be 'id'
+  
   const { id } = useParams<{ id: string }>(); 
   
-  // We can rename it to courseId for clarity inside this component if you want
+  
   const courseId = id; 
 
   const navigate = useNavigate();
@@ -26,13 +25,13 @@ export default function CoursePlayer() {
   const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch Chapters & Progress
+  
   const loadContent = async () => {
-    // 👇 FIX 2: Add a safety check. If ID is missing, don't fetch.
+    
     if (!courseId) return;
 
     try {
-      // 👇 Uses the valid courseId now
+      
       const res = await api.get(`/courses/${courseId}/chapters`);
       setChapters(res.data);
       
@@ -49,9 +48,9 @@ export default function CoursePlayer() {
 
   useEffect(() => { 
     loadContent(); 
-  }, [courseId]); // Dependencies updated
+  }, [courseId]); 
 
-  // Handle "Mark as Complete"
+  
   const handleComplete = async () => {
     if (!activeChapter) return;
     try {
@@ -62,7 +61,7 @@ export default function CoursePlayer() {
     }
   };
 
-  // Handle Certificate Download
+  
   const downloadCertificate = async () => {
     try {
       const response = await api.get(`/certificates/${courseId}`, { responseType: 'blob' });
@@ -80,7 +79,7 @@ export default function CoursePlayer() {
   if (loading) return <div className="p-10">Loading Player...</div>;
   if (!courseId) return <div className="p-10 text-red-500">Error: Invalid Course ID</div>;
 
-  // Calculate Progress
+  
   const completedCount = chapters.filter(c => c.isCompleted).length;
   const progressPercent = chapters.length > 0 ? Math.round((completedCount / chapters.length) * 100) : 0;
   const isCourseCompleted = progressPercent === 100 && chapters.length > 0;
@@ -88,13 +87,13 @@ export default function CoursePlayer() {
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
       
-      {/* Sidebar: Chapter List */}
+      
       <div className="w-80 bg-white shadow-lg flex flex-col z-10">
         <div className="p-4 border-b">
             <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-500 hover:text-blue-600 mb-2">← Back to Dashboard</button>
             <h2 className="font-bold text-gray-800">Course Content</h2>
             
-            {/* Progress Bar */}
+            
             <div className="mt-3">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Progress</span>
@@ -128,7 +127,7 @@ export default function CoursePlayer() {
             ))}
         </div>
 
-        {/* Certificate Button */}
+        
         <div className="p-4 border-t bg-gray-50">
             <button 
                 onClick={downloadCertificate}
@@ -143,7 +142,7 @@ export default function CoursePlayer() {
         </div>
       </div>
 
-      {/* Main Content: Video Player */}
+      
       <div className="flex-1 flex flex-col p-8 overflow-y-auto">
          {activeChapter ? (
             <div className="max-w-4xl mx-auto w-full">

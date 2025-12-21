@@ -6,13 +6,13 @@ const ManageCourse = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Content State
+  
   const [chapterTitle, setChapterTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [sequence, setSequence] = useState(1);
   
-  // Enrollment State
-  const [studentEmail, setStudentEmail] = useState(''); // 👈 Changed to Email
+  
+  const [studentEmail, setStudentEmail] = useState(''); 
   
   const [message, setMessage] = useState('');
   const [courseTitle, setCourseTitle] = useState('');
@@ -53,7 +53,7 @@ const ManageCourse = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      // 👇 Sending 'email' instead of 'studentId'
+      
       await axios.post(`http://localhost:5000/api/courses/${id}/enroll`, 
         { email: studentEmail }, 
         { headers: { Authorization: `Bearer ${token}` } }
@@ -83,7 +83,7 @@ const ManageCourse = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           
-          {/* LEFT: ADD CONTENT */}
+          
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
             <h2 className="text-xl font-bold mb-4 flex items-center text-gray-700">📺 Add Video Chapter</h2>
             <form onSubmit={handleAddChapter} className="space-y-4">
@@ -108,13 +108,13 @@ const ManageCourse = () => {
             </form>
           </div>
 
-          {/* RIGHT: ENROLL STUDENTS */}
+          
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
             <h2 className="text-xl font-bold mb-4 flex items-center text-gray-700">🎓 Enroll Student</h2>
             <form onSubmit={handleEnrollStudent} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-600 mb-1">Student Email Address</label>
-                {/* 👇 Input type is now email */}
+                
                 <input 
                   type="email" 
                   value={studentEmail} 

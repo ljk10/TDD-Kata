@@ -14,12 +14,12 @@ export default function Register() {
     setLoading(true);
     setServerError('');
     try {
-      // Default to student role
+      
       await api.post('/auth/register', { ...data, role: 'student' });
       alert('Registration successful! Please login.');
       navigate('/login');
     } catch (err: any) {
-      // Safely access the nested error message structure we built in the backend
+      
       const msg = err.response?.data?.error?.email?._errors[0] 
                || err.response?.data?.message 
                || 'Registration failed';

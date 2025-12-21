@@ -31,7 +31,7 @@ export const register = async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 👇 CRITICAL FIX: Auto-approve if Student OR if running Tests
+    
     const isApproved = role === 'student' || process.env.NODE_ENV === 'test';
 
     const { data, error } = await supabase
@@ -74,7 +74,7 @@ export const login = async (req: Request, res: Response) => {
 
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Check Approval
+   
     if (!user.is_approved) {
       return res.status(403).json({ message: 'Account pending approval' });
     }

@@ -3,10 +3,10 @@ import { supabase } from '../config/supabase';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import bcrypt from 'bcryptjs';
 
-// 1. Get List of All Users (Enhanced with Course Info)
+
 export const getUsers = async (req: AuthRequest, res: Response) => {
   try {
-    // A. Fetch all users
+    
     const { data: users, error } = await supabase
       .from('users')
       .select('id, email, role, is_approved, created_at')
@@ -15,18 +15,17 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
     if (error) throw error;
     if (!users) return res.json([]);
 
-    // B. Attach Course Data based on Role
-    // We use Promise.all to run these queries in parallel
+    
     const usersWithCourses = await Promise.all(users.map(async (user) => {
       
-      // If Student: Get Enrolled Courses
+      
       if (user.role === 'student') {
         const { data: enrollments } = await supabase
           .from('enrollments')
-          .select('course_id, courses(title)') // Join to get course title
+          .select('course_id, courses(title)') 
           .eq('student_id', user.id);
         
-        // Flatten the structure for easier frontend display
+        
         const courses = enrollments?.map((e: any) => ({
           id: e.course_id,
           title: e.courses?.title || 'Unknown Course'
@@ -35,7 +34,7 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
         return { ...user, courses };
       }
 
-      // If Mentor: Get Created Courses
+      
       if (user.role === 'mentor') {
         const { data: createdCourses } = await supabase
           .from('courses')
@@ -45,7 +44,7 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
         return { ...user, courses: createdCourses || [] };
       }
 
-      // If Admin: Return as is (Admins usually don't have courses)
+      
       return { ...user, courses: [] };
     }));
 
@@ -57,7 +56,7 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// 2. Approve a User
+
 export const approveUser = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params;
@@ -77,13 +76,12 @@ export const approveUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// 3. Delete a User (NEW)
+
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params;
 
-    // Delete user from the public.users table
-    // (Ensure your Supabase table is set to 'Cascade Delete' for related data)
+    
     const { error } = await supabase
       .from('users')
       .delete()
@@ -101,12 +99,12 @@ export const createMentor = async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Validation
+   
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // 2. Check if user exists
+    
     const { data: existingUser } = await supabase
       .from('users')
       .select('email')
@@ -117,18 +115,18 @@ export const createMentor = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // 3. Hash Password
+    
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. Insert New Mentor (Auto-approved)
+    
     const { data: newUser, error } = await supabase
       .from('users')
       .insert([{ 
         email, 
         password: hashedPassword, 
         role: 'mentor', 
-        is_approved: true // Admins bypass approval
+        is_approved: true
       }])
       .select()
       .single();

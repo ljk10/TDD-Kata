@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// 1. Define the Interface explicitly
+
 export interface AuthRequest extends Request {
   user?: {
-    id: string;      // <--- We strictly use 'id' here
+    id: string;      
     email: string;
     role: string;
   };
@@ -19,7 +19,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   try {
     const verified = jwt.verify(token, process.env.JWT_SECRET as string);
-    // 2. Cast verified token to our interface type
+    
     req.user = verified as any; 
     next();
   } catch (err) {

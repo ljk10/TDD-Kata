@@ -8,9 +8,9 @@ let mentorId: string;
 
 describe('Course Management (RBAC)', () => {
   
-  // 1. Setup: Create Users & Get Tokens
+  
   beforeAll(async () => {
-    // Register Student
+    
     await request(app).post('/api/auth/register').send({
       email: 'student@test.com', password: 'password123', role: 'student'
     });
@@ -19,11 +19,11 @@ describe('Course Management (RBAC)', () => {
     });
     studentToken = resStudent.body.token;
 
-    // Register Mentor
+    
     await request(app).post('/api/auth/register').send({
       email: 'mentor@test.com', password: 'password123', role: 'mentor'
     });
-    // Manually approve mentor in DB (since we don't have Admin API yet)
+    
     await supabase.from('users').update({ is_approved: true }).eq('email', 'mentor@test.com');
     
     const resMentor = await request(app).post('/api/auth/login').send({
@@ -33,13 +33,13 @@ describe('Course Management (RBAC)', () => {
     mentorId = resMentor.body.user.id;
   });
 
-  // Cleanup
+  
   afterAll(async () => {
     await supabase.from('users').delete().eq('email', 'student@test.com');
     await supabase.from('users').delete().eq('email', 'mentor@test.com');
   });
 
-  // 2. The Tests
+  
   it('should DENY a student from creating a course', async () => {
     const res = await request(app)
       .post('/api/courses')
