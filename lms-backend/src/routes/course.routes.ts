@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { createCourse, getAllCourses, getCourseById, enrollStudent, deleteCourse } from '../controllers/course.controller';
+import { 
+  createCourse, 
+  getAllCourses, 
+  getCourseById, 
+  enrollStudent, 
+  deleteCourse,
+  getAssignedCourses 
+} from '../controllers/course.controller';
 import { authenticate, authorize } from '../middlewares/auth.middleware';
 import chapterRoutes from './chapter.routes';
 
@@ -9,6 +16,7 @@ router.use(authenticate);
 
 
 router.get('/', getAllCourses);
+router.get('/assigned', authorize(['student']), getAssignedCourses);
 router.get('/:id', getCourseById);
 router.post('/', authorize(['mentor']), createCourse);
 

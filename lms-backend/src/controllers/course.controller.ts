@@ -119,3 +119,29 @@ export const enrollStudent = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ message: error.message });
   }
 };
+export const getAssignedCourses = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    
+    
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select(`
+        course_id,
+        courses (
+          *
+        )
+      `)
+      .eq('student_id', userId);
+
+    if (error) throw error;
+
+    const courses = data?.map((enrollment: any) => enrollment.courses) || [];
+
+    res.json(courses);
+
+  } catch (error: any) {
+    console.error("Get Assigned Courses Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
