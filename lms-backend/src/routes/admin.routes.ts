@@ -1,14 +1,21 @@
 import { Router } from 'express';
+import { getUsers, approveUser, deleteUser, createMentor } from '../controllers/admin.controller';
 import { authenticate, authorize } from '../middlewares/auth.middleware';
-import { getPendingMentors, approveMentor, getAllUsers, createMentor } from '../controllers/admin.controller';
 
 const router = Router();
-router.use(authenticate);
 
-// Only Admins can access these
-router.get('/mentors/pending', authorize(['admin']), getPendingMentors);
-router.patch('/mentors/:userId/approve', authorize(['admin']), approveMentor);
-router.get('/users', authorize(['admin']), getAllUsers);
-router.post('/mentors', authorize(['admin']), createMentor);
+// Protect all routes: Must be Logged In + Must be 'admin'
+router.use(authenticate);
+router.use(authorize(['admin']));
+
+// GET /api/admin/users
+router.get('/users', getUsers);
+
+// PUT /api/admin/approve/:userId
+router.put('/approve/:userId', approveUser);
+
+router.delete('/users/:userId', deleteUser);
+router.post('/mentors', createMentor);
+
 
 export default router;

@@ -1,10 +1,13 @@
 import { Router } from 'express';
-import { getCertificate } from '../controllers/certificate.controller';
+// FIX: Import 'generateCertificate', not 'getCertificate'
+import { generateCertificate } from '../controllers/certificate.controller'; 
 import { authenticate, authorize } from '../middlewares/auth.middleware';
 
-const router = Router();
+const router = Router({ mergeParams: true });
+
 router.use(authenticate);
 
-router.get('/:courseId', authorize(['student']), getCertificate);
+// GET /api/certificates/:courseId
+router.get('/:courseId', authorize(['student']), generateCertificate);
 
 export default router;

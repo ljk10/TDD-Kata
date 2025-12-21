@@ -14,7 +14,13 @@ interface Chapter {
 }
 
 export default function CoursePlayer() {
-  const { courseId } = useParams();
+  // 👇 FIX 1: Use 'id' (or whatever matches your Route path in App.tsx)
+  // If your route is path="/course/:id", this MUST be 'id'
+  const { id } = useParams<{ id: string }>(); 
+  
+  // We can rename it to courseId for clarity inside this component if you want
+  const courseId = id; 
+
   const navigate = useNavigate();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
@@ -22,33 +28,35 @@ export default function CoursePlayer() {
 
   // Fetch Chapters & Progress
   const loadContent = async () => {
+    // 👇 FIX 2: Add a safety check. If ID is missing, don't fetch.
+    if (!courseId) return;
+
     try {
+      // 👇 Uses the valid courseId now
       const res = await api.get(`/courses/${courseId}/chapters`);
       setChapters(res.data);
       
-      // Default to the first chapter or the first unlocked/incomplete one
       if (!activeChapter && res.data.length > 0) {
-        // Find first incomplete chapter, or just the first one
         const nextUp = res.data.find((c: Chapter) => !c.isCompleted && !c.isLocked) || res.data[0];
         setActiveChapter(nextUp);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load chapters", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadContent(); }, [courseId]);
+  useEffect(() => { 
+    loadContent(); 
+  }, [courseId]); // Dependencies updated
 
   // Handle "Mark as Complete"
   const handleComplete = async () => {
     if (!activeChapter) return;
     try {
       await api.post(`/progress/${activeChapter.id}/complete`);
-      // Reload to update locks/progress
       await loadContent(); 
-      // Optionally auto-advance here
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error completing chapter');
     }
@@ -70,11 +78,12 @@ export default function CoursePlayer() {
   };
 
   if (loading) return <div className="p-10">Loading Player...</div>;
+  if (!courseId) return <div className="p-10 text-red-500">Error: Invalid Course ID</div>;
 
   // Calculate Progress
   const completedCount = chapters.filter(c => c.isCompleted).length;
-  const progressPercent = Math.round((completedCount / chapters.length) * 100);
-  const isCourseCompleted = progressPercent === 100;
+  const progressPercent = chapters.length > 0 ? Math.round((completedCount / chapters.length) * 100) : 0;
+  const isCourseCompleted = progressPercent === 100 && chapters.length > 0;
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -82,7 +91,7 @@ export default function CoursePlayer() {
       {/* Sidebar: Chapter List */}
       <div className="w-80 bg-white shadow-lg flex flex-col z-10">
         <div className="p-4 border-b">
-            <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:text-blue-600 mb-2">← Back to Dashboard</button>
+            <button onClick={() => navigate('/dashboard')} className="text-sm text-gray-500 hover:text-blue-600 mb-2">← Back to Dashboard</button>
             <h2 className="font-bold text-gray-800">Course Content</h2>
             
             {/* Progress Bar */}
@@ -119,7 +128,7 @@ export default function CoursePlayer() {
             ))}
         </div>
 
-        {/* Certificate Button (Only if 100%) */}
+        {/* Certificate Button */}
         <div className="p-4 border-t bg-gray-50">
             <button 
                 onClick={downloadCertificate}
@@ -139,10 +148,9 @@ export default function CoursePlayer() {
          {activeChapter ? (
             <div className="max-w-4xl mx-auto w-full">
                 <div className="aspect-video bg-black rounded-lg shadow-xl overflow-hidden mb-6">
-                    {/* Simple embedded video or placeholder */}
                     <iframe 
                         className="w-full h-full"
-                        src={activeChapter.video_url.replace('watch?v=', 'embed/')} 
+                        src={activeChapter.video_url?.replace('watch?v=', 'embed/')} 
                         title="Video Player"
                         allowFullScreen
                     ></iframe>

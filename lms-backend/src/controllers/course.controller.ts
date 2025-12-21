@@ -1,78 +1,122 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth.middleware';
+import { Request, Response } from "express";
 import { supabase } from '../config/supabase';
-import { courseSchema } from '../utils/validation';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 export const createCourse = async (req: AuthRequest, res: Response) => {
   try {
-    // 1. Validate Input
-    const validation = courseSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({ error: validation.error.format() });
-    }
+    const { title, description } = req.body;
+    if (!req.user || !req.user.id) return res.status(401).json({ message: "Unauthorized" });
 
-    const { title, description } = validation.data;
-    const mentorId = req.user?.userId; // Got from Token
-    
-
-    // 2. Insert into DB
     const { data, error } = await supabase
       .from('courses')
-      .insert([{ title, description, mentor_id: mentorId }])
-      .select()
+      .insert([{ title, description, mentor_id: req.user.id }])
+      .select().single();
+
+    if (error) throw error;
+    res.status(201).json({ course: data });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+export const deleteCourse = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params; // Course ID
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    // 1. Get Course to check owner
+    const { data: course, error: fetchError } = await supabase
+      .from('courses')
+      .select('mentor_id')
+      .eq('id', id)
       .single();
 
-    if (error) throw error;
+    if (fetchError || !course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
 
-    res.status(201).json({ message: 'Course created successfully', course: data });
+    // 2. Check Permissions
+    // Allow if Admin OR if User is the Course Owner
+    const isOwner = course.mentor_id === userId;
+    const isAdmin = userRole === 'admin';
 
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Forbidden: You do not own this course" });
+    }
 
-export const getMyCourses = async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    
-    const { data, error } = await supabase
+    // 3. Delete
+    const { error } = await supabase
       .from('courses')
-      .select('*')
-      .eq('mentor_id', userId);
+      .delete()
+      .eq('id', id);
 
     if (error) throw error;
-    res.json(data);
+
+    res.json({ message: "Course deleted successfully" });
+
   } catch (error: any) {
+    console.error("Delete Course Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
-// ... existing imports and functions
 
-export const getAssignedCourses = async (req: AuthRequest, res: Response) => {
+export const getAllCourses = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const role = req.user?.role;
+        let query = supabase.from('courses').select('*');
+
+        if (role === 'mentor') query = query.eq('mentor_id', userId);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getCourseById = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { data, error } = await supabase.from('courses').select('*').eq('id', id).single();
+    if (error) return res.status(404).json({ message: "Course not found" });
+    res.json(data);
+};
+
+export const enrollStudent = async (req: Request, res: Response): Promise<void> => {
+  const { courseId } = req.params;
+  const { email } = req.body;
+
   try {
-    const studentId = req.user?.userId;
+    // 1. Get Student ID (Ensure table is 'users' or 'students')
+    const { data: student } = await supabase
+      .from('users') 
+      .select('id').eq('email', email).maybeSingle();
 
-    // Join Enrollments with Courses to get course details
-    const { data, error } = await supabase
+    if (!student) {
+      res.status(400).json({ message: "User not found" });
+      return;
+    }
+
+    // 2. Check Enrollment
+    const { data: exists } = await supabase
       .from('enrollments')
-      .select(`
-        course_id,
-        courses (
-          id,
-          title,
-          description,
-          mentor_id
-        )
-      `)
-      .eq('student_id', studentId);
+      .select('*')
+      .eq('student_id', student.id).eq('course_id', courseId).maybeSingle();
+
+    if (exists) {
+      res.status(400).json({ message: "Already enrolled" });
+      return;
+    }
+
+    // 3. Enroll
+    const { error } = await supabase
+      .from('enrollments').insert([{ student_id: student.id, course_id: courseId }]);
 
     if (error) throw error;
+    res.status(201).json({ message: "Enrollment successful" });
 
-    // Flatten the structure for the frontend
-    const courses = data.map((item: any) => item.courses);
-
-    res.json(courses);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };

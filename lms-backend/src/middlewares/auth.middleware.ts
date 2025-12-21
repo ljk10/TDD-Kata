@@ -1,36 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// Extend Express Request type to include our user payload
+// 1. Define the Interface explicitly
 export interface AuthRequest extends Request {
   user?: {
-    userId: string;
+    id: string;      // <--- We strictly use 'id' here
+    email: string;
     role: string;
   };
 }
 
-// 1. Authentication Middleware (Validates Token)
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
+    return res.status(401).json({ message: 'Access Denied: No Token Provided' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    req.user = decoded as { userId: string; role: string };
+    const verified = jwt.verify(token, process.env.JWT_SECRET as string);
+    // 2. Cast verified token to our interface type
+    req.user = verified as any; 
     next();
   } catch (err) {
-    res.status(401).json({ message: 'Invalid token.' });
+    res.status(401).json({ message: 'Invalid Token' });
   }
 };
 
-// 2. Authorization Middleware (Validates Role)
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access forbidden: Insufficient permissions.' });
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient Permissions' });
     }
     next();
   };

@@ -1,25 +1,25 @@
 import { Router } from 'express';
+import { createCourse, getAllCourses, getCourseById, enrollStudent, deleteCourse } from '../controllers/course.controller';
 import { authenticate, authorize } from '../middlewares/auth.middleware';
-import { createCourse, getMyCourses, getAssignedCourses } from '../controllers/course.controller';
-import { addChapter, enrollStudent, getCourseContent, completeChapter } from '../controllers/chapter.controller';
+import chapterRoutes from './chapter.routes';
+
 const router = Router();
 
-// Apply 'authenticate' to all routes in this file
 router.use(authenticate);
 
-// Only Mentors (and Admins) can create courses
-router.post('/', authorize(['mentor', 'admin']), createCourse);
+// 1. Basic Course Routes
+router.get('/', getAllCourses);
+router.get('/:id', getCourseById);
+router.post('/', authorize(['mentor']), createCourse);
 
-
-// Only Mentors can see "their" courses
-router.get('/my', authorize(['mentor']), getMyCourses);
-router.post('/:courseId/chapters', authorize(['mentor']), addChapter);
+// 2. Enrollment Route
 router.post('/:courseId/enroll', authorize(['mentor']), enrollStudent);
-router.post('/', authorize(['mentor', 'admin']), createCourse);
-router.get('/my', authorize(['mentor']), getMyCourses);
-router.post('/progress/:chapterId/complete', authorize(['student']), completeChapter);
 
-// Student Route 
-router.get('/assigned', authorize(['student']), getAssignedCourses);
-router.get('/:courseId/chapters', authorize(['student', 'mentor']), getCourseContent);
+// 3. Delegate Chapter routes to the sub-router
+router.use('/:courseId/chapters', chapterRoutes);
+
+router.delete('/:id', authorize(['mentor', 'admin']), deleteCourse);
+
+router.use('/:courseId/chapters', chapterRoutes);
+
 export default router;

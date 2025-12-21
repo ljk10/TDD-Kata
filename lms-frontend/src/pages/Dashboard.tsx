@@ -1,104 +1,154 @@
-import { useEffect, useState } from 'react';
-import api from '../api/axios';
-import { useAuth } from '../context/AuthContext';
-import { BookOpen, LogOut, PlayCircle, PlusCircle, Settings } from 'lucide-react'; // Added icons
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { Trash2, Edit, PlayCircle, PlusCircle } from 'lucide-react'; // Ensure you have lucide-react installed
 
 interface Course {
   id: string;
   title: string;
   description: string;
+  mentor_id?: string;
 }
 
-export default function Dashboard() {
-  const { user, logout } = useAuth();
+const Dashboard = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const endpoint = user?.role === 'mentor' ? '/courses/my' : '/courses/assigned';
-        const res = await api.get(endpoint);
-        setCourses(res.data);
-      } catch (err) {
-        console.error("Failed to fetch courses", err);
-      } finally {
-        setLoading(false);
+  // 1. Fetch User Role & Courses
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
       }
-    };
 
-    if (user) fetchCourses();
-  }, [user]);
+      // Decode token roughly to get role (or fetch from an endpoint if you prefer)
+      // This assumes your backend sends the role in the user object or you stored it on login
+      // For safety, let's fetch the user profile or assume role is stored in localStorage
+      const storedRole = localStorage.getItem('role') || 'student'; 
+      setRole(storedRole);
+
+      // Fetch Courses (Backend automatically filters based on role)
+      const res = await axios.get('http://localhost:5000/api/courses', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setCourses(res.data);
+    } catch (err) {
+      console.error("Failed to load dashboard", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  // 2. Handle Delete (Mentors Only)
+  const handleDeleteCourse = async (courseId: string) => {
+    if (!window.confirm("Are you sure you want to delete this course? This cannot be undone.")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      // 👇 Calls the DELETE endpoint you just created
+      await axios.delete(`http://localhost:5000/api/courses/${courseId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Remove from UI
+      setCourses(prev => prev.filter(c => c.id !== courseId));
+      alert("Course deleted successfully!");
+    } catch (err) {
+      alert("Failed to delete course.");
+    }
+  };
+
+  if (loading) return <div className="p-8">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm p-4 mb-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-            <BookOpen className="text-blue-600" />
-            <h1 className="text-xl font-bold text-gray-800">LMS Dashboard</h1>
-        </div>
-        <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600 capitalize">Role: <strong>{user?.role}</strong></span>
-            <button onClick={() => { logout(); navigate('/login'); }} className="text-gray-500 hover:text-red-500">
-                <LogOut size={20} />
-            </button>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <div className="max-w-5xl mx-auto p-4">
-        
-        {/* Header Section */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">My Courses</h2>
-          
-          {/* Mentor "Create Course" Button */}
-          {user?.role === 'mentor' && (
-            <button 
-              onClick={() => navigate('/create-course')}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              <PlusCircle size={18} /> New Course
-            </button>
-          )}
+    <div className="min-h-screen bg-gray-50 p-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            {role === 'mentor' ? 'Instructor Dashboard' : 'My Learning'}
+          </h1>
+          <p className="text-gray-500">Welcome back!</p>
         </div>
 
-        {loading ? (
-          <p>Loading courses...</p>
-        ) : courses.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-lg shadow">
-             <p className="text-gray-500 mb-2">No courses found.</p>
-             {user?.role === 'student' && <p className="text-sm text-gray-400">Ask your mentor to assign you a course.</p>}
-             {user?.role === 'mentor' && <p className="text-sm text-gray-400">Click "New Course" to get started.</p>}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* The MAP starts here, defining 'course' */}
-            {courses.map((course) => (
-              <div key={course.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{course.title}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {course.description || "No description provided."}
-                </p>
+        {/* Create Button (Mentors Only) */}
+        {role === 'mentor' && (
+          <button 
+            onClick={() => navigate('/create-course')}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          >
+            <PlusCircle size={20} /> Create New Course
+          </button>
+        )}
+      </div>
+
+      {/* Course Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {courses.map(course => (
+          <div key={course.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-2 truncate">{course.title}</h3>
+              <p className="text-gray-500 text-sm line-clamp-2 mb-4">
+                {course.description || "No description provided."}
+              </p>
+              
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
                 
-                {/* The Button logic uses 'course' here, inside the map */}
-                <button 
-                  onClick={() => navigate(user?.role === 'mentor' ? `/manage/${course.id}` : `/course/${course.id}`)}
-                  className={`w-full flex items-center justify-center gap-2 py-2 rounded font-medium
-                    ${user?.role === 'mentor' ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}
-                  `}
-                >
-                  {user?.role === 'mentor' ? <Settings size={18} /> : <PlayCircle size={18} />}
-                  {user?.role === 'mentor' ? 'Manage Content' : 'Start Learning'}
-                </button>
+                {/* ACTIONS FOR STUDENTS */}
+                {role === 'student' && (
+                  <button 
+                    onClick={() => navigate(`/course/${course.id}`)}
+                    className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-700 py-2 rounded hover:bg-green-100 font-semibold"
+                  >
+                    <PlayCircle size={18} /> Continue Learning
+                  </button>
+                )}
+
+                {/* ACTIONS FOR MENTORS */}
+                {role === 'mentor' && (
+                  <div className="flex gap-3 w-full">
+                    <button 
+                      onClick={() => navigate(`/manage-course/${course.id}`)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 py-2 rounded hover:bg-blue-100 font-semibold text-sm"
+                    >
+                      <Edit size={16} /> Manage
+                    </button>
+                    
+                    {/* 👇 DELETE BUTTON */}
+                    <button 
+                      onClick={() => handleDeleteCourse(course.id)}
+                      className="flex items-center justify-center px-3 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                      title="Delete Course"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                )}
+
               </div>
-            ))}
+            </div>
+          </div>
+        ))}
+
+        {courses.length === 0 && (
+          <div className="col-span-full text-center py-10 text-gray-400 bg-white rounded-lg border border-dashed">
+            {role === 'mentor' 
+              ? "You haven't created any courses yet." 
+              : "You are not enrolled in any courses yet."}
           </div>
         )}
       </div>
     </div>
   );
-}
+};
+
+export default Dashboard;

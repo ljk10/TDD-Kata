@@ -1,164 +1,105 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth.middleware';
+import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
-import { chapterSchema, enrollmentSchema } from '../utils/validation';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
-// 1. Add Chapter
-export const addChapter = async (req: AuthRequest, res: Response) => {
-  const { courseId } = req.params;
-  const validation = chapterSchema.safeParse(req.body);
-
-  if (!validation.success) return res.status(400).json({ error: validation.error.format() });
-
-  const { data, error } = await supabase
-    .from('chapters')
-    .insert([{ ...validation.data, course_id: courseId }])
-    .select()
-    .single();
-
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json({ message: 'Chapter added', chapter: data });
-};
-
-// 2. Enroll Student
-// Replace the existing enrollStudent function with this robust version:
-
-export const enrollStudent = async (req: AuthRequest, res: Response) => {
-  const { courseId } = req.params;
-  const validation = enrollmentSchema.safeParse(req.body);
-  
-  if (!validation.success) return res.status(400).json({ error: validation.error.format() });
-
-  let targetStudentId = validation.data.studentId;
-
+// 1. Create Chapter
+export const createChapter = async (req: AuthRequest, res: Response) => {
   try {
-    // If email provided, look up the user ID
-    if (!targetStudentId && validation.data.email) {
-      const { data: user } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', validation.data.email)
-        .single();
-      
-      if (!user) return res.status(404).json({ message: 'Student email not found' });
-      targetStudentId = user.id;
-    }
+    const { courseId } = req.params; 
+    const { title, video_url, sequence_order } = req.body;
+    const mentorId = req.user?.id; 
 
-    if (!targetStudentId) return res.status(400).json({ message: 'Student ID or Email required' });
-
-    // Enroll them
-    const { error } = await supabase
-      .from('enrollments')
-      .insert([{ student_id: targetStudentId, course_id: courseId }]);
-
-    // Ignore "already enrolled" errors (duplicate key)
-    if (error && error.code !== '23505') throw error;
-
-    res.status(201).json({ message: 'Student enrolled successfully' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-export const completeChapter = async (req: AuthRequest, res: Response) => {
-  const { chapterId } = req.params;
-  const studentId = req.user?.userId;
-
-  try {
-    // A. Get details of the chapter trying to be completed
-    const { data: currentChapter, error: chapError } = await supabase
-      .from('chapters')
-      .select('course_id, sequence_order')
-      .eq('id', chapterId)
+    // Verify Ownership
+    const { data: course } = await supabase
+      .from('courses')
+      .select('mentor_id')
+      .eq('id', courseId)
       .single();
 
-    if (chapError || !currentChapter) return res.status(404).json({ message: 'Chapter not found' });
-
-    // B. Check Sequence: Is there a previous chapter?
-    if (currentChapter.sequence_order > 1) {
-      const previousSequence = currentChapter.sequence_order - 1;
-
-      // Find the ID of the previous chapter
-      const { data: prevChapter } = await supabase
-        .from('chapters')
-        .select('id')
-        .eq('course_id', currentChapter.course_id)
-        .eq('sequence_order', previousSequence)
-        .single();
-
-      if (prevChapter) {
-        // Check if student has completed that previous chapter
-        const { data: progress } = await supabase
-          .from('progress')
-          .select('id')
-          .eq('student_id', studentId)
-          .eq('chapter_id', prevChapter.id)
-          .single();
-
-        if (!progress) {
-          return res.status(400).json({ message: 'Previous chapter must be completed first.' });
-        }
-      }
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+    
+    if (course.mentor_id !== mentorId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this course' });
     }
 
-    // C. Mark as Complete
-    const { error: insertError } = await supabase
-      .from('progress')
-      .insert([{ student_id: studentId, chapter_id: chapterId }]);
+    // Insert Chapter
+    const { data, error } = await supabase
+      .from('chapters')
+      .insert([{ course_id: courseId, title, video_url, sequence_order }])
+      .select()
+      .single();
 
-    if (insertError) {
-        // Handle duplicate completion gracefully
-        if (insertError.code === '23505') return res.json({ message: 'Chapter already completed' });
-        throw insertError;
+    if (error) {
+       if (error.code === '23505') {
+          return res.status(409).json({ 
+            message: "A chapter with this sequence number already exists." 
+          });
+       }
+       throw error;
     }
 
-    res.json({ message: 'Chapter completed successfully' });
+    res.status(201).json({ message: 'Chapter created', chapter: data });
 
   } catch (error: any) {
+    console.error("Create Chapter Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
-// ... existing imports
 
-export const getCourseContent = async (req: AuthRequest, res: Response) => {
-  const { courseId } = req.params;
-  const studentId = req.user?.userId;
-
+// 2. Get Chapters (👇 THIS WAS MISSING)
+// 2. Get Chapters with Progress Logic
+export const getChapters = async (req: AuthRequest, res: Response) => {
   try {
-    // 1. Get all chapters for this course (Sorted by sequence)
-    const { data: chapters, error: chapError } = await supabase
+    const { courseId } = req.params;
+    const userId = req.user?.id; // Get the logged-in student's ID
+
+    if (!courseId) return res.status(400).json({ message: "Course ID is missing" });
+
+    // A. Fetch all Chapters for this course
+    const { data: chapters, error: chapterError } = await supabase
       .from('chapters')
       .select('*')
       .eq('course_id', courseId)
       .order('sequence_order', { ascending: true });
 
-    if (chapError) throw chapError;
+    if (chapterError) throw chapterError;
 
-    // 2. Get student's completed chapter IDs
-    const { data: progress, error: progError } = await supabase
+    // B. Fetch User's Progress for this course
+    // (We only need to know WHICH chapter IDs are present in the progress table)
+    const { data: progressData, error: progressError } = await supabase
       .from('progress')
-      .select('chapter_id')
-      .eq('student_id', studentId);
+      .select('chapter_id, is_completed')
+      .eq('student_id', userId)
+      .eq('is_completed', true);
 
-    if (progError) throw progError;
+    if (progressError) console.error("Progress fetch error:", progressError);
 
-    // 3. Create a Set for fast lookup
-    const completedIds = new Set(progress?.map(p => p.chapter_id));
+    // Create a Set of completed chapter IDs for fast lookup
+    const completedChapterIds = new Set(progressData?.map(p => p.chapter_id));
 
-    // 4. Merge Data (Add 'isCompleted' and 'isLocked' flags)
-    // Rule: A chapter is locked if the PREVIOUS one is not completed.
-    const content = chapters.map((chapter, index) => {
-      const isCompleted = completedIds.has(chapter.id);
+    // C. Merge Logic: Calculate isLocked and isCompleted
+    let isPreviousChapterCompleted = true; // Chapter 1 is always unlocked
+
+    const chaptersWithStatus = chapters.map((chapter) => {
+      const isCompleted = completedChapterIds.has(chapter.id);
       
-      // First chapter is always unlocked. 
-      // Others are unlocked only if the previous one is completed.
-      const isLocked = index === 0 ? false : !completedIds.has(chapters[index - 1].id);
+      // A chapter is locked if the previous one wasn't finished
+      const isLocked = !isPreviousChapterCompleted;
 
-      return { ...chapter, isCompleted, isLocked };
+      // Update the flag for the NEXT iteration
+      isPreviousChapterCompleted = isCompleted;
+
+      return {
+        ...chapter,
+        isCompleted,
+        isLocked
+      };
     });
 
-    res.json(content);
+    res.status(200).json(chaptersWithStatus);
 
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (err: any) {
+    console.error("Get Chapters Error:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 };

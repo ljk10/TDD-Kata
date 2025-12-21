@@ -1,72 +1,91 @@
 import { Response } from 'express';
 import PDFDocument from 'pdfkit';
-import { AuthRequest } from '../middlewares/auth.middleware';
 import { supabase } from '../config/supabase';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
-export const getCertificate = async (req: AuthRequest, res: Response) => {
-  const { courseId } = req.params;
-  const studentId = req.user?.userId;
-
+export const generateCertificate = async (req: AuthRequest, res: Response) => {
   try {
-    // 1. Get Total Chapters in Course
-    const { count: totalChapters, error: errTotal } = await supabase
-      .from('chapters')
-      .select('*', { count: 'exact', head: true }) // head:true means just get count, no data
-      .eq('course_id', courseId);
+    const { courseId } = req.params;
+    // FIX: Changed from req.user?.userId to req.user?.id
+    const studentId = req.user?.id; 
 
-    if (errTotal) throw errTotal;
-
-    // 2. Get Completed Chapters by this Student for this Course
-    // We need to query progress where chapter_id belongs to the course
-    const { data: courseChapters } = await supabase
-      .from('chapters')
-      .select('id')
-      .eq('course_id', courseId);
-      
-    const chapterIds = courseChapters?.map(c => c.id) || [];
-
-    if (chapterIds.length === 0) {
-        return res.status(400).json({ message: 'Course has no chapters' });
+    if (!studentId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const { count: completedCount, error: errProg } = await supabase
+    // 1. Check if course exists
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('title')
+      .eq('id', courseId)
+      .single();
+
+    if (courseError || !course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // 2. Check Completion Status
+    // Get total chapters
+    const { count: totalChapters } = await supabase
+      .from('chapters')
+      .select('*', { count: 'exact', head: true })
+      .eq('course_id', courseId);
+
+    // Get completed chapters
+    const { count: completedChapters } = await supabase
       .from('progress')
       .select('*', { count: 'exact', head: true })
       .eq('student_id', studentId)
-      .in('chapter_id', chapterIds); // Check only chapters from THIS course
-
-    if (errProg) throw errProg;
-
-    // 3. Compare
-    if (!totalChapters || !completedCount || completedCount < totalChapters) {
-      return res.status(400).json({ message: 'Course not completed yet.' });
+      .eq('is_completed', true)
+      // We need to filter progress by chapters belonging to THIS course
+      // This requires a join or a second query. For simplicity in this kata:
+      // We assume the progress table logic we built guarantees validity.
+      // A more robust SQL would allow filtering progress by course_id via join.
+      
+      // FIX: For this specific TDD kata, let's verify if ALL chapters of THIS course are done.
+      // We'll fetch the actual progress rows and check their chapter_ids against the course's chapter_ids.
+    
+    // 2b. robust check
+    const { data: courseChapters } = await supabase
+        .from('chapters')
+        .select('id')
+        .eq('course_id', courseId);
+    
+    const courseChapterIds = courseChapters?.map(c => c.id) || [];
+    
+    if (courseChapterIds.length === 0) {
+         return res.status(400).json({ message: "Course has no content" });
     }
 
-    // 4. Generate PDF
+    const { data: userProgress } = await supabase
+        .from('progress')
+        .select('chapter_id')
+        .eq('student_id', studentId)
+        .eq('is_completed', true)
+        .in('chapter_id', courseChapterIds);
+    
+    const completedCount = userProgress?.length || 0;
+
+    if (completedCount !== courseChapterIds.length) {
+      return res.status(400).json({ message: 'Course not completed yet' });
+    }
+
+    // 3. Generate PDF
     const doc = new PDFDocument();
     
-    // Set HTTP Headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=certificate-${courseId}.pdf`);
 
-    doc.pipe(res); // Stream directly to response
+    doc.pipe(res);
 
-    // PDF Content
-    doc.fontSize(25).text('Certificate of Completion', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(18).text(`Awarded to User ID: ${studentId}`, { align: 'center' });
-    doc.moveDown();
-    doc.text(`For completing Course ID: ${courseId}`, { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'center' });
-
+    doc.fontSize(25).text('Certificate of Completion', 100, 100);
+    doc.fontSize(15).text(`This certifies that the student has completed:`, 100, 160);
+    doc.fontSize(20).text(course.title, 100, 190);
+    
     doc.end();
 
   } catch (error: any) {
-    // Note: If headers are already sent (streaming started), this might crash, 
-    // but for this Kata scope it's fine.
-    if (!res.headersSent) {
-        res.status(500).json({ error: error.message });
-    }
+    console.error("Certificate Error:", error);
+    res.status(500).json({ error: error.message });
   }
 };
